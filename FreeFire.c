@@ -3,31 +3,32 @@
 #include <stdlib.h>
 
 // Código da Ilha – Edição Free Fire
-// Nível: Novato
-// Este programa simula o gerenciamento básico de uma mochila com itens coletados na ilha.
-// O jogador pode adicionar, remover, listar e buscar itens de forma simples.
+// Nível: Aventureiro
+// Este programa evolui o sistema básico de mochila, agora utilizando listas encadeadas.
+// O jogador pode adicionar, remover, listar e buscar itens dinamicamente.
 
 // --- Estrutura de Dados ---
-typedef struct {
+typedef struct Item {
     char nome[30];
     char tipo[20];
     int quantidade;
+    struct Item* prox;
 } Item;
 
 // --- Protótipos das Funções ---
-void inserirItem(Item mochila[], int *numItens);
-void removerItem(Item mochila[], int *numItens);
-void listarItens(Item mochila[], int numItens);
-void buscarItem(Item mochila[], int numItens);
+Item* inserirItem(Item* inicio);
+Item* removerItem(Item* inicio);
+void listarItens(Item* inicio);
+void buscarItem(Item* inicio);
+void liberarMemoria(Item* inicio);
 
 // --- Função Principal ---
 int main() {
-    Item mochila[10];
-    int numItens = 0;
+    Item* inicio = NULL;
     int opcao;
 
     do {
-        printf("\n===== MOCHILA DE SOBREVIVÊNCIA =====\n");
+        printf("\n===== MOCHILA DE SOBREVIVÊNCIA (DINÂMICA) =====\n");
         printf("1. Adicionar item\n");
         printf("2. Remover item\n");
         printf("3. Listar itens\n");
@@ -39,18 +40,18 @@ int main() {
 
         switch (opcao) {
             case 1:
-                inserirItem(mochila, &numItens);
-                listarItens(mochila, numItens);
+                inicio = inserirItem(inicio);
+                listarItens(inicio);
                 break;
             case 2:
-                removerItem(mochila, &numItens);
-                listarItens(mochila, numItens);
+                inicio = removerItem(inicio);
+                listarItens(inicio);
                 break;
             case 3:
-                listarItens(mochila, numItens);
+                listarItens(inicio);
                 break;
             case 4:
-                buscarItem(mochila, numItens);
+                buscarItem(inicio);
                 break;
             case 0:
                 printf("Saindo do jogo...\n");
@@ -61,37 +62,38 @@ int main() {
 
     } while (opcao != 0);
 
+    liberarMemoria(inicio);
     return 0;
 }
 
 // --- Implementação das Funções ---
 
-void inserirItem(Item mochila[], int *numItens) {
-    if (*numItens >= 10) {
-        printf("A mochila está cheia!\n");
-        return;
+Item* inserirItem(Item* inicio) {
+    Item* novo = (Item*)malloc(sizeof(Item));
+    if (!novo) {
+        printf("Erro de memória!\n");
+        return inicio;
     }
 
-    Item novo;
     printf("Nome do item: ");
-    fgets(novo.nome, sizeof(novo.nome), stdin);
-    novo.nome[strcspn(novo.nome, "\n")] = '\0';
+    fgets(novo->nome, sizeof(novo->nome), stdin);
+    novo->nome[strcspn(novo->nome, "\n")] = '\0';
     printf("Tipo do item: ");
-    fgets(novo.tipo, sizeof(novo.tipo), stdin);
-    novo.tipo[strcspn(novo.tipo, "\n")] = '\0';
+    fgets(novo->tipo, sizeof(novo->tipo), stdin);
+    novo->tipo[strcspn(novo->tipo, "\n")] = '\0';
     printf("Quantidade: ");
-    scanf("%d", &novo.quantidade);
+    scanf("%d", &novo->quantidade);
     getchar();
 
-    mochila[*numItens] = novo;
-    (*numItens)++;
+    novo->prox = inicio;
     printf("Item adicionado!\n");
+    return novo;
 }
 
-void removerItem(Item mochila[], int *numItens) {
-    if (*numItens == 0) {
+Item* removerItem(Item* inicio) {
+    if (inicio == NULL) {
         printf("A mochila está vazia!\n");
-        return;
+        return inicio;
     }
 
     char nomeRemover[30];
@@ -99,38 +101,49 @@ void removerItem(Item mochila[], int *numItens) {
     fgets(nomeRemover, sizeof(nomeRemover), stdin);
     nomeRemover[strcspn(nomeRemover, "\n")] = '\0';
 
-    int encontrado = 0;
-    for (int i = 0; i < *numItens; i++) {
-        if (strcmp(mochila[i].nome, nomeRemover) == 0) {
-            for (int j = i; j < *numItens - 1; j++) {
-                mochila[j] = mochila[j + 1];
-            }
-            (*numItens)--;
-            encontrado = 1;
-            printf("Item removido!\n");
-            break;
-        }
+    Item* atual = inicio;
+    Item* anterior = NULL;
+
+    while (atual != NULL && strcmp(atual->nome, nomeRemover) != 0) {
+        anterior = atual;
+        atual = atual->prox;
     }
-    if (!encontrado) {
+
+    if (atual == NULL) {
         printf("Item não encontrado.\n");
+        return inicio;
     }
+
+    if (anterior == NULL) {
+        inicio = atual->prox;
+    } else {
+        anterior->prox = atual->prox;
+    }
+
+    free(atual);
+    printf("Item removido!\n");
+    return inicio;
 }
 
-void listarItens(Item mochila[], int numItens) {
-    if (numItens == 0) {
+void listarItens(Item* inicio) {
+    if (inicio == NULL) {
         printf("A mochila está vazia!\n");
         return;
     }
 
     printf("\n===== ITENS NA MOCHILA =====\n");
-    for (int i = 0; i < numItens; i++) {
+    Item* atual = inicio;
+    int i = 1;
+    while (atual != NULL) {
         printf("%d. Nome: %s | Tipo: %s | Quantidade: %d\n",
-               i + 1, mochila[i].nome, mochila[i].tipo, mochila[i].quantidade);
+               i, atual->nome, atual->tipo, atual->quantidade);
+        atual = atual->prox;
+        i++;
     }
 }
 
-void buscarItem(Item mochila[], int numItens) {
-    if (numItens == 0) {
+void buscarItem(Item* inicio) {
+    if (inicio == NULL) {
         printf("A mochila está vazia!\n");
         return;
     }
@@ -140,18 +153,26 @@ void buscarItem(Item mochila[], int numItens) {
     fgets(nomeBusca, sizeof(nomeBusca), stdin);
     nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
 
-    int achou = 0;
-    for (int i = 0; i < numItens; i++) {
-        if (strcmp(mochila[i].nome, nomeBusca) == 0) {
+    Item* atual = inicio;
+    while (atual != NULL) {
+        if (strcmp(atual->nome, nomeBusca) == 0) {
             printf("Item encontrado!\n");
             printf("Nome: %s\nTipo: %s\nQuantidade: %d\n",
-                   mochila[i].nome, mochila[i].tipo, mochila[i].quantidade);
-            achou = 1;
-            break;
+                   atual->nome, atual->tipo, atual->quantidade);
+            return;
         }
+        atual = atual->prox;
     }
-    if (!achou) {
-        printf("Item não encontrado.\n");
+
+    printf("Item não encontrado.\n");
+}
+
+void liberarMemoria(Item* inicio) {
+    Item* temp;
+    while (inicio != NULL) {
+        temp = inicio;
+        inicio = inicio->prox;
+        free(temp);
     }
 }
 
